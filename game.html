@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>Arabic Balloon Pop</title>
+<style>
+body {
+  margin:0;
+  overflow:hidden;
+  font-family:Arial;
+}
+
+/* Background layer */
+#background {
+  position:fixed;
+  top:0; left:0;
+  width:100vw; height:100vh;
+  background: url("PNG image.png") no-repeat center center fixed;
+  background-size: cover;
+  z-index:0;
+}
+
+/* Foreground game area */
+#gameArea {
+  position:relative;
+  width:100vw; height:100vh;
+  z-index:1;
+}
+
+#instruction, #score, #feedback, #highScore {
+  position:absolute; background:rgba(255,255,255,0.7); padding:10px; border-radius:8px;
+}
+#instruction { top:10px; left:10px; font-size:24px; display:none; }
+#score { top:10px; right:10px; font-size:24px; display:none; }
+#highScore { top:50px; right:10px; font-size:20px; display:none; }
+#feedback { bottom:20px; left:50%; transform:translateX(-50%); font-size:28px; font-weight:bold; display:none; }
+
+.balloon {
+  position:absolute; width:70px; height:90px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:32px; color:white; cursor:pointer;
+  z-index:2; /* balloons above background */
+}
+.balloon.pop { transform:scale(0.1); opacity:0; transition:all 0.3s; }
+
+#startBtn, #resetBtn {
+  font-size:20px; padding:10px 20px; color:white; border:none; border-radius:8px; cursor:pointer;
+}
+#startBtn { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:limegreen; }
+#resetBtn { position:absolute; top:90px; right:10px; background:crimson; display:none; }
+</style>
+</head>
+<body>
+<div id="background"></div>
+<div id="gameArea">
+  <button id="startBtn">ابدأ اللعبة</button>
+  <div id="instruction">استمع واضغط على الحرف الصحيح</div>
+  <div id="score">النقاط: 0</div>
+  <div id="highScore">أعلى النقاط: 0</div>
+  <button id="resetBtn">🗑️ امسح أعلى النقاط</button>
+  <div id="feedback"></div>
+</div>
+<script>
+const arabicLetters = ["ا","ب","ت","ث","ج","ح","خ","د","ذ","ر","ز","س","ش","ص","ض","ط","ظ","ع","غ","ف","ق","ك","ل","م","ن","ه","و","ي"];
+const colors = ["red","blue","green","purple","orange","pink"];
+const soundFiles = [
+  "sounds/New Recording 18.m4a","sounds/New Recording 19.m4a","sounds/New Recording 21.m4a",
+  "sounds/New Recording 22.m4a","sounds/New Recording 23.m4a","sounds/New Recording 24.m4a",
+  "sounds/New Recording 30.m4a","sounds/New Recording 31.m4a","sounds/New Recording 32.m4a",
+  "sounds/New Recording 33.m4a","sounds/New Recording 34.m4a","sounds/New Recording 35.m4a",
+  "sounds/New Recording 36.m4a","sounds/New Recording 37.m4a","sounds/New Recording 38.m4a",
+  "sounds/New Recording 39.m4a","sounds/New Recording 40.m4a","sounds/New Recording 41.m4a",
+  "sounds/New Recording 42.m4a","sounds/New Recording 43.m4a","sounds/New Recording 44.m4a",
+  "sounds/New Recording 45.m4a","sounds/New Recording 46.m4a","sounds/New Recording 47.m4a",
+  "sounds/New Recording 48.m4a","sounds/New Recording 49.m4a","sounds/New Recording 50.m4a",
+  "sounds/New Recording 51.m4a"
+];
+const audioObjects = soundFiles.map(f => new Audio(f));
+
+// 🎵 Extra sound effects
+const correctSFX = new Audio("sounds/New Recording 52.m4a");
+const wrongSFX   = new Audio("sounds/New Recording 53.m4a");
+
+let targetIndex, targetLetter, score=0, activeBalloons=[], currentSpeed=2;
+let highScore = localStorage.getItem("highScore") || 0;
+document.getElementById("highScore").innerText = "أعلى النقاط: " + highScore;
+
+function updateScore(change){ 
+  score+=change; if(score<0)score=0; 
+  document.getElementById("score").innerText="النقاط: "+score; 
+  if(score > highScore){
+    highScore = score;
+    localStorage.setItem("highScore", highScore);
+    document.getElementById("highScore").innerText = "أعلى النقاط: " + highScore;
+  }
+}
+function showFeedback(msg,color){ 
+  const fb=document.getElementById("feedback"); 
+  fb.innerText=msg; fb.style.color=color; fb.style.display="block"; 
+  setTimeout(()=>fb.style.display="none",1500); 
+}
+function createBalloon(letter,positions){
+  const balloon=document.createElement("div");
+  balloon.className="balloon"; balloon.innerText=letter;
+  balloon.style.background=colors[Math.floor(Math.random()*colors.length)];
+  let left; do{ left=Math.random()*(window.innerWidth-70);}while(positions.some(p=>Math.abs(p-left)<80));
+  positions.push(left); balloon.style.left=left+"px"; balloon.style.top=window.innerHeight+"px";
+  document.getElementById("gameArea").appendChild(balloon); activeBalloons.push(balloon);
+  function move(){ 
+    let y=parseFloat(balloon.style.top); 
+    y-=currentSpeed; 
+    balloon.style.top=y+"px"; 
+    if(y<-100){ 
+      balloon.remove(); 
+      activeBalloons=activeBalloons.filter(b=>b!==balloon); 
+      if(activeBalloons.length===0)spawnSetOfBalloons(); 
+    } else requestAnimationFrame(move); 
+  }
+  move();
+  balloon.onclick=()=>{ 
+    if(letter===targetLetter){ 
+      updateScore(2); showFeedback("🎉 صحيح! +2","lime"); 
+      correctSFX.currentTime=0; correctSFX.play(); 
+      currentSpeed++; if(currentSpeed>3)currentSpeed=2; 
+      document.querySelectorAll(".balloon").forEach(b=>{ b.classList.add("pop"); setTimeout(()=>b.remove(),300); });
+      correctSFX.onended = () => { nextRound(); };
+    } else { 
+      updateScore(-1); showFeedback("❌ خطأ -1","red"); 
+      wrongSFX.currentTime=0; wrongSFX.play(); 
+      balloon.classList.add("pop"); 
+      setTimeout(()=>{ balloon.remove(); activeBalloons=activeBalloons.filter(b=>b!==balloon); if(activeBalloons.length===0)spawnSetOfBalloons(); },300); 
+      wrongSFX.onended = () => { nextRound(); };
+    } 
+  };
+}
+function spawnSetOfBalloons(){ 
+  activeBalloons=[]; let positions=[]; 
+  let chosen=new Set([targetLetter]); 
+  while(chosen.size<5)chosen.add(arabicLetters[Math.floor(Math.random()*arabicLetters.length)]); 
+  chosen.forEach(letter=>createBalloon(letter,positions)); 
+}
+function nextRound(){
+  targetIndex = Math.floor(Math.random()*arabicLetters.length);
+  targetLetter = arabicLetters[targetIndex];
+  let audio = audioObjects[targetIndex];
+  audio.currentTime = 0;
+  audio.play();
+  document.getElementById("instruction").innerText = "استمع واضغط على الحرف الصحيح";
+  spawnSetOfBalloons();
+}
+document.getElementById("startBtn").onclick=()=>{
+  document.getElementById("startBtn").style.display="none";
+  document.getElementById("instruction").style.display="block";
+  document.getElementById("score").style.display="block";
+  document.getElementById("highScore").style.display="block";
+  document.getElementById("resetBtn").style.display="block";
+  nextRound();
+};
+document.getElementById("resetBtn").onclick=()=>{
+  localStorage.removeItem("highScore");
+  highScore = 0;
+  document.getElementById("highScore").innerText = "أعلى النقاط: 0";
+  showFeedback("🗑️ تم مسح أعلى النقاط","blue");
+};
+</script>
+</body>
+</html>
