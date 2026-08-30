@@ -121,7 +121,7 @@ function createBalloon(letter,positions){
     if(letter===targetLetter){ 
       updateScore(2); showFeedback("🎉 صحيح! +2","lime"); 
       correctSFX.currentTime=0; correctSFX.play(); 
-      currentSpeed++; if(currentSpeed>3)currentSpeed=2; 
+      currentSpeed++; if(currentSpeed>3)currentSpeed=1; 
       document.querySelectorAll(".balloon").forEach(b=>{ b.classList.add("pop"); setTimeout(()=>b.remove(),300); });
       correctSFX.onended = () => { nextRound(); };
     } else { 
