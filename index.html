@@ -39,7 +39,7 @@ body {
   position:absolute; width:70px; height:90px; border-radius:50%;
   display:flex; align-items:center; justify-content:center;
   font-size:32px; color:white; cursor:pointer;
-  z-index:2;
+  z-index:2; /* balloons above background */
 }
 .balloon.pop { transform:scale(0.1); opacity:0; transition:all 0.3s; }
 
@@ -60,33 +60,29 @@ body {
   <button id="resetBtn">🗑️ امسح أعلى النقاط</button>
   <div id="feedback"></div>
 </div>
-
 <script>
 const arabicLetters = ["ا","ب","ت","ث","ج","ح","خ","د","ذ","ر","ز","س","ش","ص","ض","ط","ظ","ع","غ","ف","ق","ك","ل","م","ن","ه","و","ي"];
 const colors = ["red","blue","green","purple","orange","pink"];
-
 const soundFiles = [
-  "sounds/NewRecording18.m4a","sounds/NewRecording19.m4a","sounds/NewRecording21.m4a",
-  "sounds/NewRecording22.m4a","sounds/NewRecording23.m4a","sounds/NewRecording24.m4a",
-  "sounds/NewRecording30.m4a","sounds/NewRecording31.m4a","sounds/NewRecording32.m4a",
-  "sounds/NewRecording33.m4a","sounds/NewRecording34.m4a","sounds/NewRecording35.m4a",
-  "sounds/NewRecording36.m4a","sounds/NewRecording37.m4a","sounds/NewRecording38.m4a",
-  "sounds/NewRecording39.m4a","sounds/NewRecording40.m4a","sounds/NewRecording41.m4a",
-  "sounds/NewRecording42.m4a","sounds/NewRecording43.m4a","sounds/NewRecording44.m4a",
-  "sounds/NewRecording45.m4a","sounds/NewRecording46.m4a","sounds/NewRecording47.m4a",
-  "sounds/NewRecording48.m4a","sounds/NewRecording49.m4a","sounds/NewRecording50.m4a",
-  "sounds/NewRecording51.m4a"
+  "NewRecording18.m4a","NewRecording19.m4a","NewRecording21.m4a",
+  "NewRecording22.m4a","NewRecording23.m4a","NewRecording24.m4a",
+  "NewRecording30.m4a","NewRecording31.m4a","NewRecording32.m4a",
+  "NewRecording33.m4a","NewRecording34.m4a","NewRecording35.m4a",
+  "NewRecording36.m4a","NewRecording37.m4a","NewRecording38.m4a",
+  "NewRecording39.m4a","NewRecording40.m4a","NewRecording41.m4a",
+  "NewRecording42.m4a","NewRecording43.m4a","NewRecording44.m4a",
+  "NewRecording45.m4a","NewRecording46.m4a","NewRecording47.m4a",
+  "NewRecording48.m4a","NewRecording49.m4a","NewRecording50.m4a",
+  "NewRecording51.m4a"
 ];
-
 const audioObjects = soundFiles.map(f => new Audio(f));
 
-const correctSFX = new Audio("sounds/NewRecording52.m4a");
-const wrongSFX   = new Audio("sounds/NewRecording53.m4a");
+// 🎵 Extra sound effects
+const correctSFX = new Audio("NewRecording52.m4a");
+const wrongSFX   = new Audio("NewRecording53.m4a");
 
-let targetIndex, targetLetter, score=0, activeBalloons=[];
-let currentSpeed = 0.5;   // ⭐ SLOW SPEED
+let targetIndex, targetLetter, score=0, activeBalloons=[], currentSpeed=2;
 let highScore = localStorage.getItem("highScore") || 0;
-
 document.getElementById("highScore").innerText = "أعلى النقاط: " + highScore;
 
 function updateScore(change){ 
@@ -98,34 +94,22 @@ function updateScore(change){
     document.getElementById("highScore").innerText = "أعلى النقاط: " + highScore;
   }
 }
-
 function showFeedback(msg,color){ 
   const fb=document.getElementById("feedback"); 
   fb.innerText=msg; fb.style.color=color; fb.style.display="block"; 
   setTimeout(()=>fb.style.display="none",1500); 
 }
-
 function createBalloon(letter,positions){
   const balloon=document.createElement("div");
-  balloon.className="balloon"; 
-  balloon.innerText=letter;
+  balloon.className="balloon"; balloon.innerText=letter;
   balloon.style.background=colors[Math.floor(Math.random()*colors.length)];
-
-  let left;
-  do{ left=Math.random()*(window.innerWidth-70);}while(positions.some(p=>Math.abs(p-left)<80));
-  positions.push(left);
-
-  balloon.style.left=left+"px"; 
-  balloon.style.top=window.innerHeight+"px";
-
-  document.getElementById("gameArea").appendChild(balloon);
-  activeBalloons.push(balloon);
-
+  let left; do{ left=Math.random()*(window.innerWidth-70);}while(positions.some(p=>Math.abs(p-left)<80));
+  positions.push(left); balloon.style.left=left+"px"; balloon.style.top=window.innerHeight+"px";
+  document.getElementById("gameArea").appendChild(balloon); activeBalloons.push(balloon);
   function move(){ 
     let y=parseFloat(balloon.style.top); 
     y-=currentSpeed; 
     balloon.style.top=y+"px"; 
-
     if(y<-100){ 
       balloon.remove(); 
       activeBalloons=activeBalloons.filter(b=>b!==balloon); 
@@ -133,63 +117,37 @@ function createBalloon(letter,positions){
     } else requestAnimationFrame(move); 
   }
   move();
-
   balloon.onclick=()=>{ 
     if(letter===targetLetter){ 
-      updateScore(2); 
-      showFeedback("🎉 صحيح! +2","lime"); 
-      correctSFX.currentTime=0; 
-      correctSFX.play(); 
-
-      document.querySelectorAll(".balloon").forEach(b=>{
-        b.classList.add("pop"); 
-        setTimeout(()=>b.remove(),300);
-      });
-
+      updateScore(2); showFeedback("🎉 صحيح! +2","lime"); 
+      correctSFX.currentTime=0; correctSFX.play(); 
+      currentSpeed++; if(currentSpeed>3)currentSpeed=0.5; 
+      document.querySelectorAll(".balloon").forEach(b=>{ b.classList.add("pop"); setTimeout(()=>b.remove(),300); });
       correctSFX.onended = () => { nextRound(); };
-
     } else { 
-      updateScore(-1); 
-      showFeedback("❌ خطأ -1","red"); 
-      wrongSFX.currentTime=0; 
-      wrongSFX.play(); 
-
+      updateScore(-1); showFeedback("❌ خطأ -1","red"); 
+      wrongSFX.currentTime=0; wrongSFX.play(); 
       balloon.classList.add("pop"); 
-      setTimeout(()=>{
-        balloon.remove(); 
-        activeBalloons=activeBalloons.filter(b=>b!==balloon); 
-        if(activeBalloons.length===0)spawnSetOfBalloons();
-      },300);
-
+      setTimeout(()=>{ balloon.remove(); activeBalloons=activeBalloons.filter(b=>b!==balloon); if(activeBalloons.length===0)spawnSetOfBalloons(); },300); 
       wrongSFX.onended = () => { nextRound(); };
     } 
   };
 }
-
 function spawnSetOfBalloons(){ 
-  activeBalloons=[]; 
-  let positions=[]; 
+  activeBalloons=[]; let positions=[]; 
   let chosen=new Set([targetLetter]); 
-
-  while(chosen.size<5)
-    chosen.add(arabicLetters[Math.floor(Math.random()*arabicLetters.length)]);
-
+  while(chosen.size<5)chosen.add(arabicLetters[Math.floor(Math.random()*arabicLetters.length)]); 
   chosen.forEach(letter=>createBalloon(letter,positions)); 
 }
-
 function nextRound(){
   targetIndex = Math.floor(Math.random()*arabicLetters.length);
   targetLetter = arabicLetters[targetIndex];
-
   let audio = audioObjects[targetIndex];
   audio.currentTime = 0;
   audio.play();
-
   document.getElementById("instruction").innerText = "استمع واضغط على الحرف الصحيح";
-
   spawnSetOfBalloons();
 }
-
 document.getElementById("startBtn").onclick=()=>{
   document.getElementById("startBtn").style.display="none";
   document.getElementById("instruction").style.display="block";
@@ -198,7 +156,6 @@ document.getElementById("startBtn").onclick=()=>{
   document.getElementById("resetBtn").style.display="block";
   nextRound();
 };
-
 document.getElementById("resetBtn").onclick=()=>{
   localStorage.removeItem("highScore");
   highScore = 0;
