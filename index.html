@@ -78,8 +78,8 @@ const soundFiles = [
 const audioObjects = soundFiles.map(f => new Audio(f));
 
 // 🎵 Extra sound effects
-const correctSFX = new Audio("sounds/New Recording 52.m4a");
-const wrongSFX   = new Audio("sounds/New Recording 53.m4a");
+const correctSFX = new Audio("NewRecording52.m4a");
+const wrongSFX   = new Audio("NewRecording53.m4a");
 
 let targetIndex, targetLetter, score=0, activeBalloons=[], currentSpeed=2;
 let highScore = localStorage.getItem("highScore") || 0;
